@@ -52,3 +52,6 @@ CATKIN_IGNORE
 
 seem_ros/**/vasedeck.mp4
 seem_ros/assets/images/transformers_gh.png
+
+# Ignore SEEM weights
+*.pt
