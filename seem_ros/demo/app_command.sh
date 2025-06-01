@@ -1,0 +1,1 @@
+PYTHONPATH=$(pwd) python3 demo/seem/app.py

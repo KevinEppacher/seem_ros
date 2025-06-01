@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'run = seem_ros.run:main'
+            'seem_lifecycle_node = seem_ros.seem_lifecycle_node:main'
         ],
     },
 )
