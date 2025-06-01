@@ -11,7 +11,7 @@ import torch
 import logging
 import wandb
 
-from utils.arguments import load_opt_command
+from seem_ros.utils.arguments import load_opt_command
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

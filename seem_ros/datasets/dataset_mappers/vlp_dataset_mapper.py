@@ -18,8 +18,8 @@ from detectron2.data import detection_utils as utils
 from detectron2.data import transforms as T
 from detectron2.data import MetadataCatalog
 
-from modeling.language.LangEncoder import build_tokenizer
-from modeling.utils import configurable
+from seem_ros.modeling.language.LangEncoder import build_tokenizer
+from seem_ros.modeling.utils import configurable
 
 
 __all__ = ["VLPreDatasetMapper"]

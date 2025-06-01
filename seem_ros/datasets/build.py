@@ -46,8 +46,8 @@ from .evaluation import (InstanceSegEvaluator,
                          GroundingEvaluator,
                          InteractiveEvaluator,
 )
-from modeling.utils import configurable
-from utils.distributed import get_world_size
+from seem_ros.modeling.utils import configurable
+from seem_ros.utils.distributed import get_world_size
 
 class JointLoader(torchdata.IterableDataset):
     def __init__(self, loaders, key_dataset):

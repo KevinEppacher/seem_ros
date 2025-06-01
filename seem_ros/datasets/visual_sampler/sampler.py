@@ -9,7 +9,7 @@ from .polygon import Polygon
 from .scribble import Scribble
 from .circle import Circle
 
-from modeling.utils import configurable
+from seem_ros.modeling.utils import configurable
 
 
 class ShapeSampler(nn.Module):

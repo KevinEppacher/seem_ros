@@ -5,7 +5,7 @@ package_name = 'seem_ros'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(include=['seem_ros', 'seem_ros.*']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'seem_lifecycle_node = seem_ros.seem_lifecycle_node:main'
+            'seem_lifecycle_node = seem_ros.seem_lifecycle_node:main',
+            'seem_web_browser_node = seem_ros.demo.seem.app:main',
         ],
     },
 )

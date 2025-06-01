@@ -14,7 +14,7 @@ from .polygon import Polygon, get_bezier_curve
 from .scribble import Scribble
 from .circle import Circle
 
-from modeling.utils import configurable
+from seem_ros.modeling.utils import configurable
 
 
 class SimpleClickSampler(nn.Module):

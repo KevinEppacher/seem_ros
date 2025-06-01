@@ -13,7 +13,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 from detectron2.utils.file_io import PathManager
 
-from utils.constants import SCAN_37, SCAN_40, SCAN_20
+from seem_ros.utils.constants import SCAN_37, SCAN_40, SCAN_20
 
 __all__ = ["load_scannet_instances", "register_scannet_context"]
 

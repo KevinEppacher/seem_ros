@@ -13,7 +13,7 @@ from detectron2.structures import BitMasks, Instances
 
 from pycocotools import mask as coco_mask
 
-from modeling.utils import configurable
+from seem_ros.modeling.utils import configurable
 
 __all__ = ["COCOInstanceNewBaselineDatasetMapper"]
 

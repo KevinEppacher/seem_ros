@@ -11,8 +11,8 @@ import logging
 
 from detectron2.evaluation.evaluator import DatasetEvaluator
 
-from utils.misc import AverageMeter
-from utils.distributed import get_world_size
+from seem_ros.utils.misc import AverageMeter
+from seem_ros.utils.distributed import get_world_size
 
 
 @torch.no_grad()

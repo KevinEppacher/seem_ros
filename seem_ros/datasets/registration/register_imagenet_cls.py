@@ -13,7 +13,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 from detectron2.utils.file_io import PathManager
 
-from utils.constants import IMAGENET_CLASSES, IMAGENET_FOLDER_NAMES
+from seem_ros.utils.constants import IMAGENET_CLASSES, IMAGENET_FOLDER_NAMES
 
 __all__ = ["load_imagenet_images", "register_imagenet"]
 

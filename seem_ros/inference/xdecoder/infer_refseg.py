@@ -20,15 +20,15 @@ np.random.seed(27)
 import torch
 from torchvision import transforms
 
-from utils.arguments import load_opt_command
+from seem_ros.utils.arguments import load_opt_command
 
 from detectron2.data import MetadataCatalog
 from detectron2.utils.colormap import random_color
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
-from modeling.BaseModel import BaseModel
-from modeling import build_model
-from utils.visualizer import Visualizer
-from utils.distributed import init_distributed
+from seem_ros.modeling.BaseModel import BaseModel
+from seem_ros.modeling import build_model
+from seem_ros.utils.visualizer import Visualizer
+from seem_ros.utils.distributed import init_distributed
 
 # logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)

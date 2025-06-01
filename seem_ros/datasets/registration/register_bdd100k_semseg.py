@@ -13,7 +13,7 @@ from typing import List, Tuple, Union
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.utils.file_io import PathManager
 
-from utils.constants import BDD_SEM
+from seem_ros.utils.constants import BDD_SEM
 
 __all__ = ["load_scannet_instances", "register_scannet_context"]
 
