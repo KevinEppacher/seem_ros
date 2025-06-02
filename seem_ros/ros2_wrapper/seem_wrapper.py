@@ -20,6 +20,7 @@ from seem_ros.modeling import build_model
 from seem_ros.utils.arguments import load_opt_from_config_files
 from seem_ros.utils.distributed import init_distributed
 from seem_ros.ros2_wrapper.seem_model_loader import get_model
+from seem_ros_interfaces.srv import Panoptic
 
 class SEEMLifecycleNode(LifecycleNode):
     def __init__(self):
@@ -47,6 +48,9 @@ class SEEMLifecycleNode(LifecycleNode):
         
         # Timers
         self.timer = None
+
+        # Service
+        self.panoptic_srv = None
 
         self.model = None
         self.rgb_image = None
@@ -77,6 +81,9 @@ class SEEMLifecycleNode(LifecycleNode):
             # Timers
             self.createTimer()
 
+            # Service
+            self.panoptic_srv = self.create_service(Panoptic,'run_panoptic_inference',self.handle_panoptic_request)
+
             rclpy.logging.get_logger('seem_lifecycle_node').info('SEEM activated.')
             return TransitionCallbackReturn.SUCCESS
         except Exception as e:
@@ -84,19 +91,23 @@ class SEEMLifecycleNode(LifecycleNode):
             return TransitionCallbackReturn.FAILURE
 
     def on_deactivate(self, state: State):
-        self.get_logger().info('Deactivating...')
+        rclpy.logging.get_logger('value_map_node').info('Deactivating...')
         try:
             if self.timer is not None:
                 self.timer.cancel()
                 self.timer = None
-                self.get_logger().info("Timer cancelled.")
+                rclpy.logging.get_logger('value_map_node').info("Timer cancelled.")
 
             if self.panoptic_pub is not None:
                 self.panoptic_pub = None
 
+            if self.panoptic_srv is not None:
+                self.panoptic_srv.destroy()
+                self.panoptic_srv = None
+
             return TransitionCallbackReturn.SUCCESS
         except Exception as e:
-            self.get_logger().error(f'Deactivation failed: {e}')
+            rclpy.logging.get_logger('value_map_node').error(f'Deactivation failed: {e}')
             return TransitionCallbackReturn.FAILURE
 
     def on_cleanup(self, state: State):
@@ -164,5 +175,22 @@ class SEEMLifecycleNode(LifecycleNode):
 
         return result_image
 
+    def handle_panoptic_request(self, request, response):
+        try:
+            image = self.bridge.imgmsg_to_cv2(request.image, desired_encoding='bgr8')
+            output_image = self.run_panoptic_inference(self.model, image)
+
+            if isinstance(output_image, PILImage.Image):
+                response.segmentation = self.bridge.cv2_to_imgmsg(np.array(output_image), encoding='rgb8')
+                response.segmentation.header.stamp = self.get_clock().now().to_msg()
+                response.segmentation.header.frame_id = "map"
+                self.get_logger().info("Service: Panoptic inference successful.")
+            else:
+                self.get_logger().warn("Service: Output image is not a PIL.Image.")
+
+        except Exception as e:
+            self.get_logger().error(f"Service failed: {e}")
+        
+        return response
 
 

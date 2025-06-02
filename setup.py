@@ -15,6 +15,7 @@ setup(
         (os.path.join('share', package_name, 'configs', 'seem'),
          glob('seem_ros/configs/seem/*.yaml')),
         (os.path.join('share', package_name), glob('seem_ros/*.pt')),
+        (os.path.join('share', package_name, 'srv'), glob('seem_ros/srv/*.srv')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +28,7 @@ setup(
         'console_scripts': [
             'seem_lifecycle_node = seem_ros.seem_lifecycle_node:main',
             'seem_web_browser_node = seem_ros.demo.seem.app:main',
+            'test_service = seem_ros.test.test_service:main',
         ],
     },
 )
