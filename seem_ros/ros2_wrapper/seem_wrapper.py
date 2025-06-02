@@ -19,6 +19,7 @@ from seem_ros.modeling.BaseModel import BaseModel
 from seem_ros.modeling import build_model
 from seem_ros.utils.arguments import load_opt_from_config_files
 from seem_ros.utils.distributed import init_distributed
+from seem_ros.ros2_wrapper.seem_model_loader import get_model
 
 class SEEMLifecycleNode(LifecycleNode):
     def __init__(self):
@@ -54,7 +55,7 @@ class SEEMLifecycleNode(LifecycleNode):
         rclpy.logging.get_logger('seem_lifecycle_node').info('Configuring SEEM Lifecycle Node...')
         
         try:
-            self.model = self.getModel()
+            self.model = get_model(self, self.config_dir, self.weight_dir)
 
             with torch.no_grad():
                 self.model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
@@ -71,7 +72,7 @@ class SEEMLifecycleNode(LifecycleNode):
             self.image_sub = self.create_subscription(Image,'/rgb',self.image_callback,10)
 
             # Publishers
-            self.panoptic_pub = self.create_publisher(Image, '/panoptic', 10)
+            self.panoptic_pub = self.create_publisher(Image, '/panoptic', 1)
 
             # Timers
             self.createTimer()
@@ -140,31 +141,6 @@ class SEEMLifecycleNode(LifecycleNode):
                     self.get_logger().info("Published panoptic segmentation.")
         except Exception as e:
             self.get_logger().error(f"Panoptic inference failed: {e}")
-
-    def getModel(self):
-        config_name = self.get_parameter('config_name').get_parameter_value().string_value
-        config_path = os.path.join(self.config_dir, config_name)
-
-        if not os.path.exists(config_path):
-            rclpy.logging.get_logger('seem_lifecycle_node').error(f"Config file not found: {config_path}")
-            return TransitionCallbackReturn.FAILURE
-
-        opt = load_opt_from_config_files([config_path])
-        opt = init_distributed(opt)
-
-        if 'focalt' in config_name:
-            weight_file = 'seem_focalt_v0.pt'
-        else:
-            weight_file = 'seem_focall_v0.pt'
-
-        weights_path = os.path.join(self.weight_dir, weight_file)
-        if not os.path.exists(weights_path):    
-            rclpy.logging.get_logger('seem_lifecycle_node').error(f"Weight file not found: {weights_path}")
-            return TransitionCallbackReturn.FAILURE
-        
-        rclpy.logging.get_logger('seem_lifecycle_node').info(f"SEEM model loaded with config: {config_name}")
-
-        return BaseModel(opt, build_model(opt)).from_pretrained(weights_path).eval().cuda()
     
     @torch.no_grad()
     def run_panoptic_inference(self, model, image_np: np.ndarray):
