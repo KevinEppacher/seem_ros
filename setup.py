@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+import os
+from glob import glob
 
 package_name = 'seem_ros'
 
@@ -10,12 +12,15 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'configs', 'seem'),
+         glob('seem_ros/configs/seem/*.yaml')),
+        (os.path.join('share', package_name), glob('seem_ros/*.pt')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='ubuntu',
     maintainer_email='kevin-eppacher@hotmail.de',
-    description='TODO: Package description',
+    description='TODO: Package description', 
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
