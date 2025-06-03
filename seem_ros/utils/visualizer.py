@@ -12,6 +12,7 @@ import pycocotools.mask as mask_util
 import torch
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
+from matplotlib.colors import is_color_like
 
 from detectron2.data import MetadataCatalog
 from detectron2.structures import BitMasks, Boxes, BoxMode, Keypoints, PolygonMasks, RotatedBoxes
@@ -886,7 +887,16 @@ class Visualizer:
             font_size = self._default_font_size
 
         # since the text background is dark, we don't want the text to be dark
+
+        if isinstance(color, (list, tuple, np.ndarray)) and max(color) > 1.0:
+            # Normalize to 0–1 if needed
+            color = [c / 255.0 for c in color]
+
+        if not is_color_like(color):
+            raise ValueError(f"Invalid color format: {color}")
+
         color = np.maximum(list(mplc.to_rgb(color)), 0.2)
+        
         color[np.argmax(color)] = max(0.8, np.max(color))
 
         x, y = position

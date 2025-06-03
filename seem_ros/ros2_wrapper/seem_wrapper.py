@@ -14,6 +14,7 @@ from seem_ros.demo.seem.tasks import interactive_infer_image
 from PIL import Image as PILImage
 import torch
 import numpy as np
+import cv2
 # Custom import
 from seem_ros.modeling.BaseModel import BaseModel
 from seem_ros.modeling import build_model
@@ -21,6 +22,7 @@ from seem_ros.utils.arguments import load_opt_from_config_files
 from seem_ros.utils.distributed import init_distributed
 from seem_ros.ros2_wrapper.seem_model_loader import get_model
 from seem_ros_interfaces.srv import Panoptic
+from seem_ros.ros2_wrapper.utils import ros2_image_to_pil, pil_to_ros2_image
 
 class SEEMLifecycleNode(LifecycleNode):
     def __init__(self):
@@ -82,7 +84,7 @@ class SEEMLifecycleNode(LifecycleNode):
             self.createTimer()
 
             # Service
-            self.panoptic_srv = self.create_service(Panoptic,'run_panoptic_inference',self.handle_panoptic_request)
+            self.panoptic_srv = self.create_service(Panoptic,'panoptic_segmentation',self.handle_panoptic_request)
 
             rclpy.logging.get_logger('seem_lifecycle_node').info('SEEM activated.')
             return TransitionCallbackReturn.SUCCESS
@@ -140,57 +142,69 @@ class SEEMLifecycleNode(LifecycleNode):
             rclpy.logging.get_logger('seem_lifecycle_node').warn("No image received or model not loaded.")
             return
 
-        try:
-            with torch.no_grad():
-                output_image = self.run_panoptic_inference(self.model, self.rgb_image)
+        # try:
+        #     with torch.no_grad():
+        #         output_image = self.run_panoptic_inference(self.model, self.rgb_image)
 
-                if isinstance(output_image, PILImage.Image):
-                    msg = self.bridge.cv2_to_imgmsg(np.array(output_image), encoding='rgb8')
-                    msg.header.stamp = self.get_clock().now().to_msg()
-                    msg.header.frame_id = "map"
-                    self.panoptic_pub.publish(msg)
-                    self.get_logger().info("Published panoptic segmentation.")
-        except Exception as e:
-            self.get_logger().error(f"Panoptic inference failed: {e}")
+        #         if isinstance(output_image, PILImage.Image):
+        #             msg = self.bridge.cv2_to_imgmsg(np.array(output_image), encoding='rgb8')
+        #             msg.header.stamp = self.get_clock().now().to_msg()
+        #             msg.header.frame_id = "map"
+        #             self.panoptic_pub.publish(msg)
+        #             self.get_logger().info("Published panoptic segmentation.")
+        # except Exception as e:
+        #     self.get_logger().error(f"Panoptic inference failed: {e}")
     
     @torch.no_grad()
-    def run_panoptic_inference(self, model, image_np: np.ndarray):
-        # Convert numpy image to PIL.Image using explicit alias
-        pil_image = PILImage.fromarray(image_np)
-        mask = PILImage.new("RGB", pil_image.size, (0, 0, 0))  # Dummy mask
-
-        image_input = {
-            "image": pil_image,
-            "mask": mask
-        }
-
-        tasks = ["Panoptic"]
-
-        result_image, _ = interactive_infer_image(
-            model=model,
-            audio_model=None,
-            image=image_input,
-            tasks=tasks
-        )
-
-        return result_image
-
-    def handle_panoptic_request(self, request, response):
+    def run_panoptic_inference(self, model, ros_image: Image) -> Image:
         try:
-            image = self.bridge.imgmsg_to_cv2(request.image, desired_encoding='bgr8')
-            output_image = self.run_panoptic_inference(self.model, image)
+            # Convert ROS2 image to PIL.Image
+            bridge = CvBridge()
+            cv_image = bridge.imgmsg_to_cv2(ros_image, desired_encoding='bgr8')
+            rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+            pil_image = PILImage.fromarray(rgb_image)
 
-            if isinstance(output_image, PILImage.Image):
-                response.segmentation = self.bridge.cv2_to_imgmsg(np.array(output_image), encoding='rgb8')
-                response.segmentation.header.stamp = self.get_clock().now().to_msg()
-                response.segmentation.header.frame_id = "map"
-                self.get_logger().info("Service: Panoptic inference successful.")
-            else:
-                self.get_logger().warn("Service: Output image is not a PIL.Image.")
+            # Dummy mask
+            mask = PILImage.new("RGB", pil_image.size, (0, 0, 0))
+
+            image_input = {
+                "image": pil_image,
+                "mask": mask
+            }
+
+            tasks = ["Panoptic"]
+            result_image, _ = interactive_infer_image(
+                model=model,
+                audio_model=None,
+                image=image_input,
+                tasks=tasks
+            )
+
+            if not isinstance(result_image, PILImage.Image):
+                self.get_logger().error("Output is not a PIL.Image!")
+                return None
+
+            return pil_to_ros2_image(result_image, frame_id="map", stamp=self.get_clock().now().to_msg())
 
         except Exception as e:
-            self.get_logger().error(f"Service failed: {e}")
-        
+            self.get_logger().error(f"run_panoptic_inference failed: {e}")
+            return None
+
+    def handle_panoptic_request(self, request, response):
+        if request.image is None:
+            self.get_logger().error("Received empty image in Panoptic service request.")
+            return response
+
+        panoptic_image = self.run_panoptic_inference(self.model, request.image)
+
+        if panoptic_image is None:
+            self.get_logger().error("Panoptic inference returned None.")
+            return response
+
+        response.panoptic_segmentation = panoptic_image
+        self.get_logger().info("Returning panoptic segmentation image.")
         return response
+
+
 
 
