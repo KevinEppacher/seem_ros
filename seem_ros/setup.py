@@ -32,6 +32,7 @@ setup(
             'seem_lifecycle_node = seem_ros.seem_lifecycle_node:main',
             'seem_web_browser_node = seem_ros.demo.seem.app:main',
             'test_service = seem_ros.test.test_service:main',
+            'test_attention_map = seem_ros.test.test_attention_map:main',
         ],
     },
 )
