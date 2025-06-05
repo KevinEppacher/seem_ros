@@ -14,7 +14,7 @@ from seem_ros.utils.visualizer import Visualizer
 from detectron2.utils.colormap import random_color
 from detectron2.data import MetadataCatalog
 from detectron2.structures import BitMasks
-from seem_ros.modeling.language.loss import vl_similarity
+from seem_ros.modeling.language.loss import vl_similarity, compute_mean_cosine_similarity
 from seem_ros.utils.constants import COCO_PANOPTIC_CLASSES
 from detectron2.data.datasets.builtin_meta import COCO_CATEGORIES
 
@@ -152,6 +152,9 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
         temperature = model.model.sem_seg_head.predictor.lang_encoder.logit_scale
         out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
         
+        mean_sim = compute_mean_cosine_similarity(v_emb, t_emb)
+        print("Mean Cosine Similarity:", mean_sim.item())
+
         matched_id = out_prob.max(0)[1]
         pred_masks_pos = pred_masks[matched_id,:,:]
         pred_class = results['pred_logits'][0][matched_id].max(dim=-1)[1]
@@ -182,7 +185,7 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
     res = demo.get_image()
     torch.cuda.empty_cache()
     # return Image.fromarray(res), stroke_inimg, stroke_refimg
-    return Image.fromarray(res), None
+    return Image.fromarray(res), mean_sim.item() if 'Text' in tasks else None
 
 def interactive_infer_video(model, audio_model, image, tasks, refimg=None, reftxt=None, audio_pth=None, video_pth=None):
     if 'Video' in tasks:

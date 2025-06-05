@@ -21,8 +21,9 @@ from seem_ros.modeling import build_model
 from seem_ros.utils.arguments import load_opt_from_config_files
 from seem_ros.utils.distributed import init_distributed
 from seem_ros.ros2_wrapper.seem_model_loader import get_model
-from seem_ros_interfaces.srv import Panoptic
+from seem_ros_interfaces.srv import Panoptic, ObjectSegmentation, SemanticSimilarity
 from seem_ros.ros2_wrapper.utils import ros2_image_to_pil, pil_to_ros2_image
+from seem_ros.ros2_wrapper.seem_inference import run_text_inference, prepare_input, run_panoptic_inference
 
 class SEEMLifecycleNode(LifecycleNode):
     def __init__(self):
@@ -85,6 +86,10 @@ class SEEMLifecycleNode(LifecycleNode):
 
             # Service
             self.panoptic_srv = self.create_service(Panoptic,'panoptic_segmentation',self.handle_panoptic_request)
+
+            self.object_segmentation_srv = self.create_service(ObjectSegmentation,'object_segmentation',self.handle_object_segmentation_request)
+
+            self.semantic_similarity_srv = self.create_service(SemanticSimilarity,'semantic_similarity',self.handle_semantic_similarity_request)
 
             rclpy.logging.get_logger('seem_lifecycle_node').info('SEEM activated.')
             return TransitionCallbackReturn.SUCCESS
@@ -158,27 +163,13 @@ class SEEMLifecycleNode(LifecycleNode):
     @torch.no_grad()
     def run_panoptic_inference(self, model, ros_image: Image) -> Image:
         try:
-            # Convert ROS2 image to PIL.Image
-            bridge = CvBridge()
-            cv_image = bridge.imgmsg_to_cv2(ros_image, desired_encoding='bgr8')
-            rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-            pil_image = PILImage.fromarray(rgb_image)
+            if ros_image is None:
+                self.get_logger().error("Received empty image in Panoptic inference.")
+                return None
+            
+            image_input = prepare_input(self, ros_image)
 
-            # Dummy mask
-            mask = PILImage.new("RGB", pil_image.size, (0, 0, 0))
-
-            image_input = {
-                "image": pil_image,
-                "mask": mask
-            }
-
-            tasks = ["Panoptic"]
-            result_image, _ = interactive_infer_image(
-                model=model,
-                audio_model=None,
-                image=image_input,
-                tasks=tasks
-            )
+            result_image = run_panoptic_inference(self, model, image_input)
 
             if not isinstance(result_image, PILImage.Image):
                 self.get_logger().error("Output is not a PIL.Image!")
@@ -205,6 +196,43 @@ class SEEMLifecycleNode(LifecycleNode):
         self.get_logger().info("Returning panoptic segmentation image.")
         return response
 
+    def handle_object_segmentation_request(self, request, response):
+        if request.image is None:
+            self.get_logger().error("Received empty image in Object Segmentation service request.")
+            return response
 
+        image_input = prepare_input(self, request.image)
+        object_segmentation_image, _ = run_text_inference(self, self.model, image_input, request.query)
 
+        if object_segmentation_image is None:
+            self.get_logger().error("Object segmentation inference returned None.")
+            return response
 
+        response.segmented_image = pil_to_ros2_image(object_segmentation_image, frame_id="map", stamp=self.get_clock().now().to_msg())
+        # response.segmented_image = object_segmentation_image
+        self.get_logger().info("Returning object segmentation image.")
+        return response
+    
+    def handle_semantic_similarity_request(self, request, response):
+        if request.image is None or request.query.strip() == "":
+            self.get_logger().error("Empty image or query in SemanticSimilarity request.")
+            response.score = float('nan')
+            return response
+
+        try:
+            image_input = prepare_input(self, request.image)
+            _, cosine_sim = run_text_inference(self, self.model, image_input, request.query)
+
+            if cosine_sim is None:
+                self.get_logger().error("Cosine similarity is None.")
+                response.score = float('nan')
+            else:
+                response.score = float(cosine_sim)
+
+            self.get_logger().info(f"Returning cosine similarity: {response.score:.4f}")
+            return response
+
+        except Exception as e:
+            self.get_logger().error(f"Semantic similarity computation failed: {e}")
+            response.score = float('nan')
+            return response

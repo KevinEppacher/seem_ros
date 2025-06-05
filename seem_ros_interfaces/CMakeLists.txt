@@ -12,6 +12,8 @@ find_package(sensor_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/Panoptic.srv"
+  "srv/ObjectSegmentation.srv"
+  "srv/SemanticSimilarity.srv"
   DEPENDENCIES sensor_msgs
 )
 

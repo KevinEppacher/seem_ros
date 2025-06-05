@@ -59,7 +59,7 @@ def run_inference(model, image_input, prompt):
             tasks=["Text"],
             reftxt=prompt  # <- correct way to pass the grounding text
         )
-    return result_image, cosine_sim 
+    return result_image, cosine_sim
 
 
 def show_result(pil_image):
@@ -71,7 +71,7 @@ def show_result(pil_image):
 
 
 def main():
-    prompt = "chair"
+    prompt = "door"
     image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image.png")
 
     print("Loading model...")
@@ -81,9 +81,7 @@ def main():
     image_input = prepare_input(image_path)
 
     print("Running inference with prompt:", prompt)
-    output_image, cosine_sim = run_inference(model, image_input, prompt)
-    if cosine_sim is not None:
-        print("Cosine similarity:", cosine_sim)
+    output_image = run_inference(model, image_input, prompt)
 
     print("Displaying result...")
     show_result(output_image)

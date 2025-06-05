@@ -188,6 +188,34 @@ def vl_similarity(image_feat, text_feat, temperature=1):
     logits = temperature.exp().clamp(max=100) * logits
     return logits
 
+import torch
+
+def compute_mean_cosine_similarity(image_feat: torch.Tensor, text_feat: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the mean cosine similarity between a text embedding and an image feature map (patch embeddings).
+
+    Args:
+        image_feat (torch.Tensor): Image patch features of shape [N_patches, D]
+        text_feat (torch.Tensor): Text embedding of shape [D] or [1, D]
+
+    Returns:
+        torch.Tensor: A single scalar tensor representing the mean cosine similarity.
+    """
+    # Ensure text_feat has shape [D]
+    if text_feat.dim() == 2 and text_feat.shape[0] == 1:
+        text_feat = text_feat.squeeze(0)
+
+    # Normalize both embeddings
+    image_feat = image_feat / (image_feat.norm(dim=-1, keepdim=True) + 1e-7)  # [N_patches, D]
+    text_feat = text_feat / (text_feat.norm() + 1e-7)  # [D]
+
+    # Compute cosine similarity for each patch
+    cos_sim = torch.matmul(image_feat, text_feat)  # [N_patches]
+
+    # Return mean similarity across all patches
+    return cos_sim.mean()
+
+
 def ql_multi_contrastive_loss(image_feat, text_feat, text_hash, temperature=1):
     # add the following 4 lines
     image_feat = all_gather_arbitary_tensor(image_feat)

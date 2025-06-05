@@ -79,14 +79,14 @@ def main():
             if 'Video' in task:
                 return interactive_infer_video(model, audio, image, task, *args, **kwargs)
             else:
-                print("##################################################################################")
-                print("model: ", model)
-                print("audio: ", audio)
-                print("image: ", image)
-                print("task: ", task)
-                print("args: ", args)
-                print("kwargs: ", kwargs)
-                print("##################################################################################")
+                # print("##################################################################################")
+                # print("model: ", model)
+                # print("audio: ", audio)
+                # print("image: ", image)
+                # print("task: ", task)
+                # print("args: ", args)
+                # print("kwargs: ", kwargs)
+                # print("##################################################################################")
                 return interactive_infer_image(model, audio, image, task, *args, **kwargs)
 
     class ImageMask(gr.components.Image):
