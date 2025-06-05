@@ -24,39 +24,47 @@ from seem_ros.ros2_wrapper.seem_model_loader import get_model
 from seem_ros_interfaces.srv import Panoptic
 from seem_ros.ros2_wrapper.utils import ros2_image_to_pil, pil_to_ros2_image
 
-def prepare_input(node, ros_image: Image):
-    """Load image and return it along with a dummy mask."""
-    bridge = CvBridge()
-    cv_image = bridge.imgmsg_to_cv2(ros_image, desired_encoding='bgr8')
-    rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-    pil_image = PILImage.fromarray(rgb_image)
-    mask = PILImage.new("RGB", pil_image.size, (0, 0, 0))  # Dummy black mask
 
-    return {
-        "image": pil_image,
-        "mask": mask
-    }
+class SEEMInference:
+    def __init__(self, node, config_dir, weight_dir):
+        self.node = node
+        self.model = get_model(node, config_dir, weight_dir)
+        self.bridge = CvBridge()
 
-def run_text_inference(node, model, image_input, prompt):
-    """Run SEEM inference with text-based grounding."""
-    with torch.no_grad():
+        if self.model:
+            with torch.no_grad():
+                self.model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(
+                    COCO_PANOPTIC_CLASSES + ["background"], is_eval=True
+                )
+
+    def prepare_input(self, ros_image):
+        cv_image = self.bridge.imgmsg_to_cv2(ros_image, desired_encoding='bgr8')
+        rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        pil_image = PILImage.fromarray(rgb_image)
+        mask = PILImage.new("RGB", pil_image.size, (0, 0, 0))
+        return {"image": pil_image, "mask": mask}
+
+    @torch.no_grad()
+    def run_text_inference(self, ros_image, query):
+        image_input = self.prepare_input(ros_image)
+        from seem_ros.demo.seem.tasks import interactive_infer_image
         result_image, cosine_sim = interactive_infer_image(
-            model=model,
+            model=self.model,
             audio_model=None,
             image=image_input,
             tasks=["Text"],
-            reftxt=prompt
+            reftxt=query
         )
-    return result_image, cosine_sim 
+        return result_image, cosine_sim
 
-def run_panoptic_inference(node, model, image_input):
-    """Run SEEM inference for panoptic segmentation."""
-    with torch.no_grad():
+    @torch.no_grad()
+    def run_panoptic_inference(self, ros_image):
+        image_input = self.prepare_input(ros_image)
+        from seem_ros.demo.seem.tasks import interactive_infer_image
         result_image, _ = interactive_infer_image(
-            model=model,
+            model=self.model,
             audio_model=None,
             image=image_input,
             tasks=["Panoptic"]
         )
-    return result_image
-
+        return result_image

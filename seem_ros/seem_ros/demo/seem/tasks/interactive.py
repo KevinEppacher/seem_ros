@@ -153,7 +153,7 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
         out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
         
         mean_sim = compute_mean_cosine_similarity(v_emb, t_emb)
-        print("Mean Cosine Similarity:", mean_sim.item())
+        # print("Mean Cosine Similarity:", mean_sim.item())
 
         matched_id = out_prob.max(0)[1]
         pred_masks_pos = pred_masks[matched_id,:,:]
