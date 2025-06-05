@@ -45,7 +45,7 @@ class SEEMLifecycleNode(LifecycleNode):
         self.config_dir = os.path.join(pkg_share, 'configs/seem')
         self.weight_dir = pkg_share
 
-        self.get_logger().info("Finished initializing SEEMInference.")
+        self.get_logger().info("Finished initializing SEEMLifecycleNode.")
 
 
     def _declare_parameters(self):
