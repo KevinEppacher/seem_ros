@@ -6,10 +6,13 @@ import torch
 class VLMBaseLifecycleNode(LifecycleNode):
     def __init__(self, node_name):
         super().__init__(node_name)
+        self.get_logger().info(f"Initializing {node_name} lifecycle node.")
         self.bridge = CvBridge()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
         self.rgb_image = None
+        self.get_logger().info(f"{node_name} lifecycle node initialized.")
+        
 
     def on_configure(self, state: State):
         try:
