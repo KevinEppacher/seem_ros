@@ -33,6 +33,7 @@ setup(
             'seem_web_browser_node = seem_ros.demo.seem.app:main',
             'test_service = seem_ros.test.test_service:main',
             'test_attention_map = seem_ros.test.test_attention_map:main',
+            'test_text_prompt = seem_ros.test.test_text_prompt:main',
         ],
     },
 )

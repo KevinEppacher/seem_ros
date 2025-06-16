@@ -18,7 +18,7 @@ def get_model(node, config_dir: str, weight_dir: str):
     opt = load_opt_from_config_files([config_path])
     opt = init_distributed(opt)
 
-    weight_file = 'seem_focalt_v0.pt' if 'focalt' in config_name else 'seem_focall_v0.pt'
+    weight_file = 'seem_focall_v1.pt' if 'focall' in config_name else 'seem_focall_v1.pt'
     weights_path = os.path.join(weight_dir, weight_file)
 
     if not os.path.exists(weights_path):
