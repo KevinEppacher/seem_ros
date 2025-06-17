@@ -11,8 +11,6 @@ from seem_ros.modeling import build_model
 from seem_ros.utils.arguments import load_opt_from_config_files
 from seem_ros.utils.distributed import init_distributed
 from seem_ros.demo.seem.tasks import interactive_infer_image
-from torchvision import transforms
-from types import SimpleNamespace
 
 
 def get_config_path():
@@ -37,11 +35,6 @@ def load_model():
             COCO_PANOPTIC_CLASSES + ["background"], is_eval=True
         )
 
-    model.model.metadata = SimpleNamespace(
-        thing_dataset_id_to_contiguous_id={},
-        stuff_dataset_id_to_contiguous_id={},
-    )
-
     return model
 
 
@@ -64,7 +57,7 @@ def run_inference(model, image_input, prompt):
             audio_model=None,
             image=image_input,
             tasks=["Text"],
-            reftxt=prompt
+            reftxt=prompt  # <- correct way to pass the grounding text
         )
     return result_image, cosine_sim 
 
@@ -76,39 +69,9 @@ def show_result(pil_image):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def preprocess_image(rgb, input_size=360):
-    """Resize and convert to torch tensor"""
-    transform = transforms.Resize(input_size, interpolation=PILImage.BICUBIC)
-    image = np.asarray(transform(PILImage.fromarray(rgb)))
-    tensor = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).cuda()
-    return tensor
-
-@torch.inference_mode()
-def encode_image(model, rgb_np, mode="default"):
-    """Encode an RGB image using SEEM-style input."""
-    # Transform RGB (np.array) → Tensor
-    transform = transforms.Compose([
-        transforms.Resize(360, interpolation=PILImage.BICUBIC),
-        transforms.ToTensor(),  # HWC → CHW, float in [0,1]
-    ])
-    pil_image = PILImage.fromarray(rgb_np)
-    tensor = transform(pil_image).unsqueeze(0).cuda()  # (1, 3, H, W)
-
-    # Wrap into model input dict
-    input_dict = [{"image": tensor.squeeze(0)}]  # shape (3, H, W)
-    return model(input_dict, mode)
-
-@torch.inference_mode()
-def encode_text(model, texts):
-    return model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(texts, is_eval=False)
-    # return model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(texts, is_eval=True)
-
-def encode_prompt(model, prompt, task="default"):
-    if task == "default":
-        return encode_text(model, prompt)
 
 def main():
-    prompt = ["chair"]
+    prompt = "chair"
     image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image.png")
 
     print("Loading model...")
@@ -117,19 +80,14 @@ def main():
     print("Preparing input...")
     image_input = prepare_input(image_path)
 
-    pil_image = image_input["image"]
-    rgb = np.array(pil_image)  # shape (H, W, 3)
+    print("Running inference with prompt:", prompt)
+    output_image, cosine_sim = run_inference(model, image_input, prompt)
+    if cosine_sim is not None:
+        print("Cosine similarity:", cosine_sim)
 
-    t_emb = encode_prompt(model=model, prompt=prompt, task="default")
-    print("Text embedding:", t_emb)
-    # print("Text embedding shape:", t_emb.shape)
+    print("Displaying result...")
+    show_result(output_image)
 
-    import time
-    time.sleep(3)
-
-    res_list = encode_image(model, rgb, mode="default")
-    print("Encoded image:", res_list)
-    # print("Encoded image shape:", res_list[0].shape)
 
 if __name__ == "__main__":
     main()

@@ -142,8 +142,8 @@ def draw_mask_interactively(image: PILImage.Image, window_name="Draw Mask") -> P
 
 def main():
     # File paths
-    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras1.png")
-    image_ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras2.png")
+    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ducks.png")
+    image_ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "duck_input.png")
     prompt = "chair"
 
     print("Loading model...")
@@ -167,7 +167,7 @@ def main():
     ref_mask = draw_mask_interactively(image_ref["image"])
 
     print("Running example-based segmentation...")
-    output_image = segment_image_by_reference(model, image_input, ref_mask)
+    output_image = segment_image_by_reference(model, image_input, image_ref["mask"])
     show_result(output_image)
 
 
