@@ -100,14 +100,15 @@ def encode_image(model, rgb_np, mode="default"):
 
 @torch.inference_mode()
 def encode_text(model, texts):
-    return model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(texts, is_eval=True)
+    return model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(texts, is_eval=False)
+    # return model.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(texts, is_eval=True)
 
 def encode_prompt(model, prompt, task="default"):
     if task == "default":
         return encode_text(model, prompt)
 
 def main():
-    prompt = "chair"
+    prompt = ["chair"]
     image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image.png")
 
     print("Loading model...")
