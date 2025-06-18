@@ -130,17 +130,33 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
         pred_class = results['pred_logits'][logits_idx].max(dim=-1)[1]
 
     elif 'Example' in tasks:
-        v_emb = results['pred_maskembs']
-        s_emb = results['pred_pvisuals']
-        pred_masks = results['pred_masks']
+        v_emb = results['pred_maskembs']              # (N, D)
+        s_emb = results['pred_pvisuals']              # (1, D)  or (1, 1, D)
 
-        pred_logits = v_emb @ s_emb.transpose(1,2)
+        pred_masks = results['pred_masks']
+        pred_logits = v_emb @ s_emb.transpose(1,2)     # shape: (N, 1, 1)
+
         logits_idx_y = pred_logits[:,:,0].max(dim=1)[1]
         logits_idx_x = torch.arange(len(logits_idx_y), device=logits_idx_y.device)
         logits_idx = torch.stack([logits_idx_x, logits_idx_y]).tolist()
+
         pred_masks_pos = pred_masks[logits_idx]
         pred_class = results['pred_logits'][logits_idx].max(dim=-1)[1]
-    
+
+        s_emb_flat = s_emb.squeeze(1).squeeze(0)       # shape (D,)
+        v_emb_norm = v_emb / (v_emb.norm(dim=-1, keepdim=True) + 1e-7)
+        s_emb_norm = s_emb_flat / (s_emb_flat.norm(dim=-1, keepdim=True) + 1e-7)
+
+        cos_sim = torch.matmul(v_emb_norm, s_emb_norm)    # shape (N,)
+        mean_sim = cos_sim.mean()
+        print("Mean similarity:", cos_sim.mean().item())
+        print("Max similarity:", cos_sim.max().item())
+        print("Min similarity:", cos_sim.min().item()) 
+        topk = 5
+        topk_sim, _ = torch.topk(cos_sim, k=topk)
+        avg_topk = topk_sim.mean().item()
+        print(f"Top-{topk} mean similarity:", avg_topk) 
+
     elif 'Text' in tasks:
         pred_masks = results['pred_masks'][0]
         v_emb = results['pred_captions'][0]
@@ -184,7 +200,7 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
     res = demo.get_image()
     torch.cuda.empty_cache()
     # return Image.fromarray(res), stroke_inimg, stroke_refimg
-    return Image.fromarray(res), mean_sim.item() if 'Text' in tasks else None
+    return Image.fromarray(res), mean_sim.item() if ('Text' in tasks or 'Example' in tasks) else None
 
 def interactive_infer_video(model, audio_model, image, tasks, refimg=None, reftxt=None, audio_pth=None, video_pth=None):
     if 'Video' in tasks:

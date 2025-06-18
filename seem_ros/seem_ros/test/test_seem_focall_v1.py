@@ -86,14 +86,14 @@ def segment_image_by_reference(model, image_dict: dict, ref_mask: PILImage.Image
     }
 
     # Run example-based segmentation
-    result_image, _ = interactive_infer_image(
+    result_image, cosine_sim = interactive_infer_image(
         model=model,
         audio_model=None,
         image=input_dict,
         tasks=["Example"],
         refimg=ref_dict
     )
-    return result_image
+    return result_image, cosine_sim
 
 
 def show_result(pil_image):
@@ -142,8 +142,8 @@ def draw_mask_interactively(image: PILImage.Image, window_name="Draw Mask") -> P
 
 def main():
     # File paths
-    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras1.png")
-    image_ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras2.png")
+    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image.png")
+    image_ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image2.png")
     prompt = "zebra"
 
     print("Loading model...")
@@ -167,7 +167,9 @@ def main():
     ref_mask = draw_mask_interactively(image_ref["image"])
 
     print("Running example-based segmentation...")
-    output_image = segment_image_by_reference(model, image_input, ref_mask)
+    output_image, cosine_sim = segment_image_by_reference(model, image_input, ref_mask)
+    # if cosine_sim is not None:
+    #     print("Cosine similarity:", cosine_sim)
     show_result(output_image)
 
 
