@@ -144,7 +144,7 @@ def main():
     # File paths
     image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras1.png")
     image_ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zebras2.png")
-    prompt = "chair"
+    prompt = "zebra"
 
     print("Loading model...")
     model = load_model()
