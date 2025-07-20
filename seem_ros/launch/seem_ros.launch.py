@@ -3,17 +3,18 @@ from launch_ros.actions import LifecycleNode, Node
 
 def generate_launch_description():
  
-    seem_lifecycle_node = Node(
+    seem_name = "seem_lifecycle_node"
+    seem_namespace = 'seem_ros'
+    seem_node = Node(
         package='seem_ros',
         executable='seem_lifecycle_node',
-        name='seem_lifecycle_node',
+        name=seem_name,
+        namespace=seem_namespace,
         output='screen',
-        parameters=[{
-            'timer_frequency': 10.0,
-            'config_name': 'focall_unicl_lang_demo.yaml'
-        }]
+        emulate_tty=True
     )
 
+
     return LaunchDescription([
-        seem_lifecycle_node
+        seem_node
     ])
