@@ -57,7 +57,7 @@ def run_inference(model, image_input, prompt):
             audio_model=None,
             image=image_input,
             tasks=["Text"],
-            reftxt=prompt  # <- correct way to pass the grounding text
+            reftxt=prompt
         )
     return result_image, cosine_sim 
 

@@ -23,6 +23,7 @@ from seem_ros.utils.distributed import init_distributed
 from seem_ros.ros2_wrapper.seem_model_loader import get_model
 from seem_ros_interfaces.srv import Panoptic
 from seem_ros.ros2_wrapper.utils import ros2_image_to_pil, pil_to_ros2_image
+from seem_ros.demo.seem.tasks import interactive_infer_image
 
 
 class SEEMInference:
@@ -47,7 +48,6 @@ class SEEMInference:
     @torch.no_grad()
     def run_text_inference(self, ros_image, query):
         image_input = self.prepare_input(ros_image)
-        from seem_ros.demo.seem.tasks import interactive_infer_image
         result_image, cosine_sim = interactive_infer_image(
             model=self.model,
             audio_model=None,
@@ -60,7 +60,6 @@ class SEEMInference:
     @torch.no_grad()
     def run_panoptic_inference(self, ros_image):
         image_input = self.prepare_input(ros_image)
-        from seem_ros.demo.seem.tasks import interactive_infer_image
         result_image, _ = interactive_infer_image(
             model=self.model,
             audio_model=None,
