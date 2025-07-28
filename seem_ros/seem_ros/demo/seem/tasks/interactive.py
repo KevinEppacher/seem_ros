@@ -158,21 +158,52 @@ def interactive_infer_image(model, audio_model, image, tasks, refimg=None, reftx
         print(f"Top-{topk} mean similarity:", avg_topk) 
 
     elif 'Text' in tasks:
-        pred_masks = results['pred_masks'][0]
-        v_emb = results['pred_captions'][0]
-        t_emb = extra['grounding_class']
+        pred_masks = results['pred_masks'][0]            # (N, H, W)
+        v_emb = results['pred_captions'][0]              # (N, D)
+        t_emb = extra['grounding_class']                 # (1, D)
 
+        # Normalize embeddings
         t_emb = t_emb / (t_emb.norm(dim=-1, keepdim=True) + 1e-7)
         v_emb = v_emb / (v_emb.norm(dim=-1, keepdim=True) + 1e-7)
 
         temperature = model.model.sem_seg_head.predictor.lang_encoder.logit_scale
-        out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)
-        
+        out_prob = vl_similarity(v_emb, t_emb, temperature=temperature)  # (N, 1)
         mean_sim = compute_mean_cosine_similarity(v_emb, t_emb)
 
-        matched_id = out_prob.max(0)[1]
-        pred_masks_pos = pred_masks[matched_id,:,:]
-        pred_class = results['pred_logits'][0][matched_id].max(dim=-1)[1]
+        scores = out_prob[:, 0].cpu().numpy()  # (N,)
+
+        # 🔽 Top-K Auswahl
+        top_k = 3
+        if len(scores) < top_k:
+            print(f"Only {len(scores)} masks found, using all.")
+            top_indices = np.argsort(scores)[::-1]
+        else:
+            top_indices = np.argsort(scores)[-top_k:][::-1]  # Top-K (sorted descending)
+
+        # Visualisierung
+        for i in top_indices:
+            mask_tensor = pred_masks[i].unsqueeze(0).unsqueeze(0)  # (1,1,H,W)
+            mask_up = F.interpolate(mask_tensor, size=(data['height'], data['width']), mode="bilinear", align_corners=False)
+            binary_mask = (mask_up[0, 0] > 0.5).cpu().numpy().astype("uint8")
+
+            # Optional: Bounding Box (falls du MarkerArray etc. nutzen willst)
+            x, y, w, h = cv2.boundingRect(binary_mask)
+            print(f"[{i}] Box: ({x},{y},{w},{h})")
+
+            # Score auf 0-1 normieren (sigmoid statt raw logits)
+            raw_score = float(scores[i])
+            normalized_score = torch.sigmoid(torch.tensor(raw_score)).item()
+
+            cls_id = results['pred_logits'][0][i].argmax().item()
+            text_label = f"{reftxt} ({normalized_score:.2f})"
+            color = colors_list[cls_id % len(colors_list)]
+
+            visual.draw_binary_mask(binary_mask, color=color, text=text_label)
+
+        res = visual.output.get_image()
+        return Image.fromarray(res), float(mean_sim.item())
+
+
 
     elif 'Audio' in tasks:
         pred_masks = results['pred_masks'][0]

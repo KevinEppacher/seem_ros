@@ -71,8 +71,8 @@ def show_result(pil_image):
 
 
 def main():
-    prompt = "chair"
-    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image.png")
+    prompt = "oven"
+    image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ducks.png")
 
     print("Loading model...")
     model = load_model()
